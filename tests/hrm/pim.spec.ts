@@ -16,6 +16,7 @@ test.describe('OrangeHRM PIM', () => {
     const empNumber = await pimPage.addEmployee(firstName, lastName, employeeId);
     trackEmployee(empNumber);
 
+    // Toast is shown on the Add page, before the full-page redirect removes it.
     await expect(pimPage.toastWith('Successfully Saved')).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/empNumber/${empNumber}$`));
     await expect(pimPage.employeeNameHeader).toHaveText(`${firstName} ${lastName}`);
