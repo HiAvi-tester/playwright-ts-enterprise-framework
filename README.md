@@ -26,6 +26,7 @@ It is deliberately **not tied to one site**: the same patterns drive four differ
 - **OrangeHRM is a shared demo that anyone can change**, so every test owns its data. Employees get a UUID-based name and Employee Id, are created through OrangeHRM's own REST API (`api/HrmClient.ts`) or the UI, and are deleted in fixture teardown, which runs even when a test fails. No test depends on records that already exist. Fields are located by their visible label, because many OrangeHRM inputs have no stable attributes.
 - **Automation Exercise always returns HTTP 200** and puts the real status in a `responseCode` body field (201 created, 400 bad request, 404 not found, 405 wrong method). `api/AutomationExerciseClient.ts` wraps every call in a typed `ApiResult`, and tests assert `responseCode`, so negative tests cannot pass by accident. UI tests create a fresh user through the API, exercise login and cart in the browser, and delete the user through the API afterwards.
 - **Public demo sites go down or rate-limit.** CI runs a preflight per site and fails that job alone with an explicit "site unavailable" error. When Automation Exercise serves its 503 "heavy load (queue full)" page during a test, the failure is annotated `site-issue` in the report instead of looking like a test defect.
+- **Automation Exercise blocks CI runners.** From GitHub-hosted runners the site answers its API with an HTML bot-protection page instead of JSON, so its CI job is **non-blocking**: it still runs on every push, and when the site blocks the runner it stops at the preflight and posts a ⚠ warning plus a job-summary note saying the tests did not run, without turning the build red. The 14 Automation Exercise tests are verified locally with `npm run test:ae`. The suite does not try to get around the site's bot protection.
 
 ---
 
@@ -81,7 +82,7 @@ flowchart LR
     A & S1 & S2 & H1 & H2 & AE --> R[Merge blob reports → one HTML report]
 ```
 
-Each test job starts with `.github/scripts/check-site.sh`. No secrets are required: every target uses the public defaults in `utils/env.ts`.
+Each test job starts with `.github/scripts/check-site.sh`. The Automation Exercise job is non-blocking (see above). No secrets are required: every target uses the public defaults in `utils/env.ts`.
 
 ---
 

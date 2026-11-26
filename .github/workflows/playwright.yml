@@ -116,6 +116,11 @@ jobs:
           retention-days: 7
 
   # ── Automation Exercise (API + API-seeded UI) ────────────────────────────────
+  # Non-blocking: the site serves GitHub-hosted runners an HTML bot-protection page
+  # instead of its JSON API, so this job usually stops at the preflight. The preflight
+  # and test steps may fail without failing the build; the last step always reports
+  # what happened as a warning annotation and in the job summary. The suite itself is
+  # verified locally with `npm run test:ae`.
   automationexercise:
     needs: typecheck
     runs-on: ubuntu-latest
@@ -128,14 +133,37 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Preflight - Automation Exercise
+        id: preflight
+        continue-on-error: true
         # Must return JSON: from some networks the site answers HTTP 200 with an HTML bot-check page.
         run: bash .github/scripts/check-site.sh "Automation Exercise" https://automationexercise.com/api/productsList '"responseCode"'
       - name: Install browsers
+        if: steps.preflight.outcome == 'success'
         run: npx playwright install --with-deps chromium
       - name: Run Automation Exercise API + UI tests
+        id: tests
+        if: steps.preflight.outcome == 'success'
+        continue-on-error: true
         run: npx playwright test --project=ae-api --project=ae-ui
-      - uses: actions/upload-artifact@v4
+      - name: Report non-blocking result
         if: ${{ !cancelled() }}
+        env:
+          PREFLIGHT: ${{ steps.preflight.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+        run: |
+          if [[ "$PREFLIGHT" != "success" ]]; then
+            msg="Automation Exercise tests did NOT run: the site served CI an HTML bot-protection page instead of its JSON API (see the preflight step). Verify locally with: npm run test:ae"
+          elif [[ "$TESTS" != "success" ]]; then
+            msg="Automation Exercise tests FAILED (non-blocking job). Check the merged HTML report; failures annotated 'site-issue' were caused by the site being overloaded."
+          else
+            echo "Automation Exercise API + UI tests passed." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::warning title=Automation Exercise (non-blocking)::$msg"
+          echo "### ⚠️ Automation Exercise (non-blocking)" >> "$GITHUB_STEP_SUMMARY"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
         with:
           name: blob-report-ae
           path: blob-report
