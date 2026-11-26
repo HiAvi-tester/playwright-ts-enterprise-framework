@@ -1,6 +1,6 @@
 # Playwright + TypeScript Enterprise Test Framework
 
-[![Playwright Tests](https://github.com/YOUR_GITHUB_USERNAME/playwright-ts-enterprise-framework/actions/workflows/playwright.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/playwright-ts-enterprise-framework/actions/workflows/playwright.yml)
+[![Playwright Tests](https://github.com/HiAvi-tester/playwright-ts-enterprise-framework/actions/workflows/playwright.yml/badge.svg)](https://github.com/HiAvi-tester/playwright-ts-enterprise-framework/actions/workflows/playwright.yml)
 ![Playwright](https://img.shields.io/badge/Playwright-1.49+-2EAD33?logo=playwright&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 
@@ -101,7 +101,7 @@ playwright-ts-enterprise-framework/
 ## Quick start
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/playwright-ts-enterprise-framework.git
+git clone https://github.com/HiAvi-tester/playwright-ts-enterprise-framework.git
 cd playwright-ts-enterprise-framework
 npm install && npx playwright install --with-deps chromium firefox
 npm test
