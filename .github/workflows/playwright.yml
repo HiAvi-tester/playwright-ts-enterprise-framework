@@ -1,0 +1,94 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '30 3 * * 1-5' # weekday nightly run (09:00 IST) to catch drift in the target apps
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run typecheck
+
+  api:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Run API tests
+        run: npx playwright test --project=api
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: blob-report-api
+          path: blob-report
+          retention-days: 7
+
+  e2e:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium firefox
+      - name: Run E2E tests (shard ${{ matrix.shard }})
+        run: npx playwright test --project=chromium --project=firefox --shard=${{ matrix.shard }}
+      - name: Name shard artifact
+        if: ${{ !cancelled() }}
+        run: echo "SHARD_ID=$(echo '${{ matrix.shard }}' | tr '/' '-')" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: blob-report-e2e-${{ env.SHARD_ID }}
+          path: blob-report
+          retention-days: 7
+
+  report:
+    needs: [api, e2e]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+      - name: Merge shard reports into one HTML report
+        run: npx playwright merge-reports --reporter html ./all-blob-reports
+      - uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: playwright-report
+          retention-days: 14
