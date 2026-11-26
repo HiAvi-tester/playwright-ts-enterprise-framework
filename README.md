@@ -1,7 +1,7 @@
 # Playwright + TypeScript Enterprise Test Framework
 
 [![Playwright Tests](https://github.com/HiAvi-tester/playwright-ts-enterprise-framework/actions/workflows/playwright.yml/badge.svg)](https://github.com/HiAvi-tester/playwright-ts-enterprise-framework/actions/workflows/playwright.yml)
-![Playwright](https://img.shields.io/badge/Playwright-1.49+-2EAD33?logo=playwright&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-1.65-2EAD33?logo=playwright&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 
 A UI and API test automation framework built the way I'd set one up for a real product team: Page Object Model, custom fixtures, login once and reuse the auth state, typed API client with JSON-schema contract checks, and a **sharded CI pipeline** that merges results into one report.
@@ -11,7 +11,7 @@ A UI and API test automation framework built the way I'd set one up for a real p
 | **UI (E2E)** | [SauceDemo](https://www.saucedemo.com) | Login (positive and negative), product sorting, cart state, full checkout, price maths |
 | **API** | [Restful-Booker](https://restful-booker.herokuapp.com/apidoc/index.html) | Token auth, full CRUD, partial update, authorization (403), JSON schema validation |
 
-**32 test executions per run:** 12 UI scenarios × 2 browsers (Chromium, Firefox), 7 API tests, and 1 auth setup.
+**36 test executions per run:** 14 UI scenarios × 2 browsers (Chromium, Firefox), 7 API tests, and 1 auth setup.
 
 ---
 
@@ -34,7 +34,7 @@ flowchart LR
         DATA[test-data/users.json]
     end
 
-    SETUP -- saves storageState --> AUTH[(.auth/standard-user.json)]
+    SETUP -- saves storageState --> AUTH[(.auth/standard_user.json)]
     AUTH -- reused by --> E2E
     E2E --> FIX
     API --> FIX
@@ -90,7 +90,7 @@ playwright-ts-enterprise-framework/
 ├── test-data/users.json
 ├── tests/
 │   ├── setup/auth.setup.ts           # login once, save storageState
-│   ├── e2e/                          # login, inventory, checkout specs
+│   ├── e2e/                          # login, inventory, cart, checkout specs
 │   └── api/booking.spec.ts           # auth, CRUD, schema, authorization
 ├── utils/env.ts                      # typed environment config
 └── playwright.config.ts              # projects, retries, tracing, reporters
@@ -103,9 +103,11 @@ playwright-ts-enterprise-framework/
 ```bash
 git clone https://github.com/HiAvi-tester/playwright-ts-enterprise-framework.git
 cd playwright-ts-enterprise-framework
-npm install && npx playwright install --with-deps chromium firefox
+npm ci && npx playwright install --with-deps chromium firefox
 npm test
 ```
+
+Requires Node.js 20+. The Allure report (`npm run allure:report`) also needs Java 8+ on your PATH, because `allure-commandline` is a Java tool.
 
 | Command | What it does |
 |---|---|
