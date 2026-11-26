@@ -99,6 +99,9 @@ export default defineConfig({
     {
       name: 'ae-ui',
       testMatch: /tests\/automationexercise\/ui\/.*\.spec\.ts/,
+      // The public site rate-limits with "heavy load (queue full)" 503 pages;
+      // capping concurrency keeps this suite from adding to that load.
+      workers: 2,
       timeout: 45_000,
       expect: { timeout: 10_000 },
       use: { ...devices['Desktop Chrome'], baseURL: env.ae.baseURL },
