@@ -1,13 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
-import { env, STORAGE_STATE } from './utils/env';
+import { env, HRM_STORAGE_STATE, STORAGE_STATE } from './utils/env';
 
 /**
- * Project graph:
- *   setup ──▶ chromium
- *         └─▶ firefox
- *   api   (independent, no browser)
+ * Project graph (one target application per group):
  *
- * `setup` logs in once and saves storageState, so UI tests start already
+ *   SauceDemo        setup ──▶ chromium
+ *                          └─▶ firefox
+ *   Restful-Booker   api                     (no browser)
+ *   OrangeHRM        hrm-setup ──▶ hrm-chromium
+ *   AutomationEx.    ae-api                  (no browser)
+ *                    ae-ui                   (users seeded through the API per test)
+ *
+ * Setup projects log in once and save storageState, so UI tests start already
  * authenticated instead of repeating the login flow in every test.
  */
 export default defineConfig({
@@ -19,7 +23,7 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 7_000 },
 
-  // In CI each shard writes a blob report; a later job merges them into one HTML report.
+  // In CI each job/shard writes a blob report; a later job merges them into one HTML report.
   reporter: env.isCI
     ? [['blob'], ['github'], ['allure-playwright', { resultsDir: 'allure-results' }]]
     : [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }], ['allure-playwright', { resultsDir: 'allure-results' }]],
@@ -35,35 +39,69 @@ export default defineConfig({
   },
 
   projects: [
-    // 1. Logs in once through the UI and saves the session to STORAGE_STATE.
+    // ── SauceDemo ────────────────────────────────────────────────────────────
     {
       name: 'setup',
-      testMatch: /setup\/.*\.setup\.ts/,
+      testMatch: /tests\/setup\/auth\.setup\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
-
-    // 2. Browser E2E suites reuse the saved session (no UI login per test).
     {
       name: 'chromium',
-      testMatch: /e2e\/.*\.spec\.ts/,
+      testMatch: /tests\/saucedemo\/.*\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
     },
     {
       name: 'firefox',
-      testMatch: /e2e\/.*\.spec\.ts/,
+      testMatch: /tests\/saucedemo\/.*\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Firefox'], storageState: STORAGE_STATE },
     },
 
-    // 3. API suite: no browser is launched, only APIRequestContext.
+    // ── Restful-Booker: API only, no browser is launched ─────────────────────
     {
       name: 'api',
-      testMatch: /api\/.*\.spec\.ts/,
+      testMatch: /tests\/api\/.*\.spec\.ts/,
       use: {
         baseURL: env.api.baseURL,
         extraHTTPHeaders: { Accept: 'application/json' },
       },
+    },
+
+    // ── OrangeHRM: shared public demo, slower than the others ────────────────
+    {
+      name: 'hrm-setup',
+      testMatch: /tests\/hrm\/.*\.setup\.ts/,
+      timeout: 60_000,
+      use: { ...devices['Desktop Chrome'], baseURL: env.hrm.baseURL },
+    },
+    {
+      name: 'hrm-chromium',
+      testMatch: /tests\/hrm\/.*\.spec\.ts/,
+      dependencies: ['hrm-setup'],
+      timeout: 60_000,
+      expect: { timeout: 15_000 },
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: env.hrm.baseURL,
+        storageState: HRM_STORAGE_STATE,
+        actionTimeout: 15_000,
+        navigationTimeout: 30_000,
+      },
+    },
+
+    // ── Automation Exercise ──────────────────────────────────────────────────
+    {
+      name: 'ae-api',
+      testMatch: /tests\/automationexercise\/api\/.*\.spec\.ts/,
+      use: { baseURL: env.ae.baseURL },
+    },
+    {
+      name: 'ae-ui',
+      testMatch: /tests\/automationexercise\/ui\/.*\.spec\.ts/,
+      timeout: 45_000,
+      expect: { timeout: 10_000 },
+      use: { ...devices['Desktop Chrome'], baseURL: env.ae.baseURL },
     },
   ],
 });

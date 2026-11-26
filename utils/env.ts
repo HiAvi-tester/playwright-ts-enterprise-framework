@@ -37,6 +37,15 @@ export interface EnvConfig {
     readonly baseURL: string;
     readonly admin: Credentials;
   };
+  /** OrangeHRM open-source demo (shared, resets daily). */
+  readonly hrm: {
+    readonly baseURL: string;
+    readonly admin: Credentials;
+  };
+  /** Automation Exercise: e-commerce UI + REST API used for API-seeded UI tests. */
+  readonly ae: {
+    readonly baseURL: string;
+  };
   readonly workers: number | undefined;
   readonly retries: number;
 }
@@ -59,9 +68,22 @@ export const env: EnvConfig = Object.freeze({
       password: read('BOOKER_PASSWORD', 'password123'),
     },
   },
+  hrm: {
+    baseURL: read('HRM_BASE_URL', 'https://opensource-demo.orangehrmlive.com'),
+    admin: {
+      username: read('HRM_USERNAME', 'Admin'),
+      password: read('HRM_PASSWORD', 'admin123'),
+    },
+  },
+  ae: {
+    baseURL: read('AE_BASE_URL', 'https://automationexercise.com'),
+  },
   workers: process.env.WORKERS ? readInt('WORKERS', 2) : isCI ? 2 : undefined,
   retries: readInt('RETRIES', isCI ? 2 : 0),
 });
 
 /** Where the authenticated SauceDemo session is persisted by the setup project. */
 export const STORAGE_STATE = '.auth/standard_user.json';
+
+/** Where the authenticated OrangeHRM admin session is persisted by the hrm-setup project. */
+export const HRM_STORAGE_STATE = '.auth/hrm_admin.json';
