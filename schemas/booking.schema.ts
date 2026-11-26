@@ -33,7 +33,8 @@ const createdBookingSchema: JSONSchemaType<CreatedBooking> = {
   additionalProperties: false,
 };
 
-const ajv = new Ajv({ allErrors: true });
+/** Shared Ajv instance: every contract schema in the framework compiles through it. */
+export const ajv = new Ajv({ allErrors: true });
 export const validateBooking = ajv.compile(bookingSchema);
 export const validateCreatedBooking = ajv.compile(createdBookingSchema);
 

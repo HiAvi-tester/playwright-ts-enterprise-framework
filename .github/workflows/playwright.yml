@@ -13,6 +13,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# No secrets are needed: every target is a public demo and utils/env.ts holds the defaults.
+# Each test job starts with a preflight (.github/scripts/check-site.sh) so an outage of a
+# public site fails that job alone, with an explicit "site unavailable" error.
+
 jobs:
   typecheck:
     runs-on: ubuntu-latest
@@ -25,6 +29,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
 
+  # ── Restful-Booker (API only) ────────────────────────────────────────────────
   api:
     needs: typecheck
     runs-on: ubuntu-latest
@@ -35,6 +40,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Preflight - Restful-Booker
+        run: bash .github/scripts/check-site.sh "Restful-Booker" https://restful-booker.herokuapp.com/ping
       - name: Run API tests
         run: npx playwright test --project=api
       - uses: actions/upload-artifact@v4
@@ -44,6 +51,7 @@ jobs:
           path: blob-report
           retention-days: 7
 
+  # ── SauceDemo (Chromium + Firefox, sharded) ──────────────────────────────────
   e2e:
     needs: typecheck
     runs-on: ubuntu-latest
@@ -59,9 +67,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Preflight - SauceDemo
+        run: bash .github/scripts/check-site.sh "SauceDemo" https://www.saucedemo.com
       - name: Install browsers
         run: npx playwright install --with-deps chromium firefox
-      - name: Run E2E tests (shard ${{ matrix.shard }})
+      - name: Run SauceDemo tests (shard ${{ matrix.shard }})
         run: npx playwright test --project=chromium --project=firefox --shard=${{ matrix.shard }}
       - name: Name shard artifact
         if: ${{ !cancelled() }}
@@ -73,8 +83,95 @@ jobs:
           path: blob-report
           retention-days: 7
 
+  # ── OrangeHRM (shared public demo, sharded) ──────────────────────────────────
+  hrm:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Preflight - OrangeHRM demo
+        run: bash .github/scripts/check-site.sh "OrangeHRM demo" https://opensource-demo.orangehrmlive.com/web/index.php/auth/login
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run OrangeHRM tests (shard ${{ matrix.shard }})
+        run: npx playwright test --project=hrm-chromium --shard=${{ matrix.shard }}
+      - name: Name shard artifact
+        if: ${{ !cancelled() }}
+        run: echo "SHARD_ID=$(echo '${{ matrix.shard }}' | tr '/' '-')" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: blob-report-hrm-${{ env.SHARD_ID }}
+          path: blob-report
+          retention-days: 7
+
+  # ── Automation Exercise (API + API-seeded UI) ────────────────────────────────
+  # Non-blocking: the site serves GitHub-hosted runners an HTML bot-protection page
+  # instead of its JSON API, so this job usually stops at the preflight. The preflight
+  # and test steps may fail without failing the build; the last step always reports
+  # what happened as a warning annotation and in the job summary. The suite itself is
+  # verified locally with `npm run test:ae`.
+  automationexercise:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Preflight - Automation Exercise
+        id: preflight
+        continue-on-error: true
+        # Must return JSON: from some networks the site answers HTTP 200 with an HTML bot-check page.
+        run: bash .github/scripts/check-site.sh "Automation Exercise" https://automationexercise.com/api/productsList '"responseCode"'
+      - name: Install browsers
+        if: steps.preflight.outcome == 'success'
+        run: npx playwright install --with-deps chromium
+      - name: Run Automation Exercise API + UI tests
+        id: tests
+        if: steps.preflight.outcome == 'success'
+        continue-on-error: true
+        run: npx playwright test --project=ae-api --project=ae-ui
+      - name: Report non-blocking result
+        if: ${{ !cancelled() }}
+        env:
+          PREFLIGHT: ${{ steps.preflight.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+        run: |
+          if [[ "$PREFLIGHT" != "success" ]]; then
+            msg="Automation Exercise tests did NOT run: the site served CI an HTML bot-protection page instead of its JSON API (see the preflight step). Verify locally with: npm run test:ae"
+          elif [[ "$TESTS" != "success" ]]; then
+            msg="Automation Exercise tests FAILED (non-blocking job). Check the merged HTML report; failures annotated 'site-issue' were caused by the site being overloaded."
+          else
+            echo "Automation Exercise API + UI tests passed." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::warning title=Automation Exercise (non-blocking)::$msg"
+          echo "### ⚠️ Automation Exercise (non-blocking)" >> "$GITHUB_STEP_SUMMARY"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
+        with:
+          name: blob-report-ae
+          path: blob-report
+          retention-days: 7
+
+  # ── One merged HTML report for every job and shard ───────────────────────────
   report:
-    needs: [api, e2e]
+    needs: [api, e2e, hrm, automationexercise]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
