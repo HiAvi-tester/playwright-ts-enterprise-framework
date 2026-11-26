@@ -9,6 +9,11 @@ test.describe('Login', () => {
     await loginPage.goto();
   });
 
+  test('login page shows the Swag Labs branding', async ({ page, loginPage }) => {
+    await expect(page).toHaveTitle('Swag Labs');
+    await expect(loginPage.logo).toHaveText('Swag Labs');
+  });
+
   test('standard user lands on the inventory page @smoke', async ({ page, loginPage, inventoryPage }) => {
     await loginPage.login(users.standard.username, users.standard.password);
 

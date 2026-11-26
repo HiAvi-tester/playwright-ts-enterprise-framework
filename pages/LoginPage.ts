@@ -5,12 +5,14 @@ export class LoginPage {
   readonly password: Locator;
   readonly loginButton: Locator;
   readonly error: Locator;
+  readonly logo: Locator;
 
   constructor(private readonly page: Page) {
     this.username = page.getByTestId('username');
     this.password = page.getByTestId('password');
     this.loginButton = page.getByTestId('login-button');
     this.error = page.getByTestId('error');
+    this.logo = page.locator('.login_logo');
   }
 
   async goto(): Promise<void> {

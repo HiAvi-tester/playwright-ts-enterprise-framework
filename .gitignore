@@ -6,6 +6,7 @@ blob-report/
 all-blob-reports/
 allure-results/
 allure-report/
+monocart-report/
 playwright/.cache/
 .env
 *.log

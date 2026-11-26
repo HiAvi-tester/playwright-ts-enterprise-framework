@@ -15,6 +15,15 @@ export class CartPage extends BasePage {
     await this.page.goto('/cart.html');
   }
 
+  /** A single cart row, found by product name. */
+  item(productName: string): Locator {
+    return this.page.getByTestId('inventory-item').filter({ hasText: productName });
+  }
+
+  itemQuantity(productName: string): Locator {
+    return this.item(productName).getByTestId('item-quantity');
+  }
+
   async names(): Promise<string[]> {
     return this.itemNames.allInnerTexts();
   }

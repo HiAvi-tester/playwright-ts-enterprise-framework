@@ -121,7 +121,7 @@ npm test
 Point the suite at another environment without code changes:
 
 ```bash
-BASE_URL=https://staging.example.com API_BASE_URL=https://api.staging.example.com npm test
+WEB_BASE_URL=https://staging.example.com API_BASE_URL=https://api.staging.example.com npm test
 ```
 
 ---
@@ -137,3 +137,9 @@ BASE_URL=https://staging.example.com API_BASE_URL=https://api.staging.example.co
 ## Author
 
 **Avinash Kumar Verma**: Senior Test Engineer · ISTQB certified · 9 years in QA, now focused on Playwright, Java/Selenium and API test automation.
+
+---
+
+## Origin
+
+The page-object base class, typed `utils/env.ts` and `tsconfig.json` come from the author's earlier Playwright practice project; this repo extends them with the API suite, contract checks, auth fixtures and sharded CI.
