@@ -128,7 +128,8 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Preflight - Automation Exercise
-        run: bash .github/scripts/check-site.sh "Automation Exercise" https://automationexercise.com/api/productsList
+        # Must return JSON: from some networks the site answers HTTP 200 with an HTML bot-check page.
+        run: bash .github/scripts/check-site.sh "Automation Exercise" https://automationexercise.com/api/productsList '"responseCode"'
       - name: Install browsers
         run: npx playwright install --with-deps chromium
       - name: Run Automation Exercise API + UI tests
