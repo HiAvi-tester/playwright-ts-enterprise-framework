@@ -13,6 +13,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# No secrets are needed: every target is a public demo and utils/env.ts holds the defaults.
+# Each test job starts with a preflight (.github/scripts/check-site.sh) so an outage of a
+# public site fails that job alone, with an explicit "site unavailable" error.
+
 jobs:
   typecheck:
     runs-on: ubuntu-latest
@@ -25,6 +29,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
 
+  # ── Restful-Booker (API only) ────────────────────────────────────────────────
   api:
     needs: typecheck
     runs-on: ubuntu-latest
@@ -35,6 +40,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Preflight - Restful-Booker
+        run: bash .github/scripts/check-site.sh "Restful-Booker" https://restful-booker.herokuapp.com/ping
       - name: Run API tests
         run: npx playwright test --project=api
       - uses: actions/upload-artifact@v4
@@ -44,6 +51,7 @@ jobs:
           path: blob-report
           retention-days: 7
 
+  # ── SauceDemo (Chromium + Firefox, sharded) ──────────────────────────────────
   e2e:
     needs: typecheck
     runs-on: ubuntu-latest
@@ -59,9 +67,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Preflight - SauceDemo
+        run: bash .github/scripts/check-site.sh "SauceDemo" https://www.saucedemo.com
       - name: Install browsers
         run: npx playwright install --with-deps chromium firefox
-      - name: Run E2E tests (shard ${{ matrix.shard }})
+      - name: Run SauceDemo tests (shard ${{ matrix.shard }})
         run: npx playwright test --project=chromium --project=firefox --shard=${{ matrix.shard }}
       - name: Name shard artifact
         if: ${{ !cancelled() }}
@@ -73,8 +83,66 @@ jobs:
           path: blob-report
           retention-days: 7
 
+  # ── OrangeHRM (shared public demo, sharded) ──────────────────────────────────
+  hrm:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Preflight - OrangeHRM demo
+        run: bash .github/scripts/check-site.sh "OrangeHRM demo" https://opensource-demo.orangehrmlive.com/web/index.php/auth/login
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run OrangeHRM tests (shard ${{ matrix.shard }})
+        run: npx playwright test --project=hrm-chromium --shard=${{ matrix.shard }}
+      - name: Name shard artifact
+        if: ${{ !cancelled() }}
+        run: echo "SHARD_ID=$(echo '${{ matrix.shard }}' | tr '/' '-')" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: blob-report-hrm-${{ env.SHARD_ID }}
+          path: blob-report
+          retention-days: 7
+
+  # ── Automation Exercise (API + API-seeded UI) ────────────────────────────────
+  automationexercise:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Preflight - Automation Exercise
+        run: bash .github/scripts/check-site.sh "Automation Exercise" https://automationexercise.com/api/productsList
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run Automation Exercise API + UI tests
+        run: npx playwright test --project=ae-api --project=ae-ui
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: blob-report-ae
+          path: blob-report
+          retention-days: 7
+
+  # ── One merged HTML report for every job and shard ───────────────────────────
   report:
-    needs: [api, e2e]
+    needs: [api, e2e, hrm, automationexercise]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
