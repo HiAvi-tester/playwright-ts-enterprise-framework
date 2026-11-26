@@ -4,14 +4,12 @@ import { BasePage } from './BasePage';
 export type SortOption = 'az' | 'za' | 'lohi' | 'hilo';
 
 export class InventoryPage extends BasePage {
-  readonly title: Locator;
   readonly sortDropdown: Locator;
   readonly itemNames: Locator;
   readonly itemPrices: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.title = page.getByTestId('title');
     this.sortDropdown = page.getByTestId('product-sort-container');
     this.itemNames = page.getByTestId('inventory-item-name');
     this.itemPrices = page.getByTestId('inventory-item-price');
@@ -32,7 +30,7 @@ export class InventoryPage extends BasePage {
   /** Prices as numbers, e.g. "$29.99" -> 29.99 */
   async prices(): Promise<number[]> {
     const raw = await this.itemPrices.allInnerTexts();
-    return raw.map((p) => Number(p.replace('$', '')));
+    return raw.map((p) => BasePage.parsePrice(p));
   }
 
   /** Converts a product name to SauceDemo's data-test slug, e.g. "Sauce Labs Backpack" -> "sauce-labs-backpack". */

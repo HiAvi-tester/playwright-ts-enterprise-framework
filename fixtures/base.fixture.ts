@@ -40,7 +40,7 @@ export const test = base.extend<PageFixtures & ApiFixtures>({
     await use(new BookingClient(request));
   },
   authToken: async ({ bookingClient }, use) => {
-    await use(await bookingClient.createToken(env.apiUser, env.apiPassword));
+    await use(await bookingClient.createToken(env.api.admin.username, env.api.admin.password));
   },
 });
 

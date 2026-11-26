@@ -46,10 +46,7 @@ export class CheckoutPage extends BasePage {
 
   /** Reads "Item total: $39.98" style labels into numbers. */
   private async amount(label: Locator): Promise<number> {
-    const text = await label.innerText();
-    const match = text.match(/\$([\d.]+)/);
-    if (!match) throw new Error(`No amount found in "${text}"`);
-    return Number(match[1]);
+    return BasePage.parsePrice(await label.innerText());
   }
 
   async totals(): Promise<{ subtotal: number; tax: number; total: number }> {

@@ -1,6 +1,5 @@
 import { test as setup, expect } from '../../fixtures/base.fixture';
-import { STORAGE_STATE_PATH } from '../../utils/env';
-import users from '../../test-data/users.json';
+import { env, STORAGE_STATE } from '../../utils/env';
 
 /**
  * Runs once before the browser projects. Logs in through the UI and saves
@@ -8,7 +7,7 @@ import users from '../../test-data/users.json';
  */
 setup('authenticate as standard user', async ({ page, loginPage }) => {
   await loginPage.goto();
-  await loginPage.login(users.standard.username, users.standard.password);
+  await loginPage.login(env.web.user.username, env.web.user.password);
   await expect(page).toHaveURL(/inventory\.html/);
-  await page.context().storageState({ path: STORAGE_STATE_PATH });
+  await page.context().storageState({ path: STORAGE_STATE });
 });
