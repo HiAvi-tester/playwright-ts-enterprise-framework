@@ -3,6 +3,7 @@
 [![Playwright Tests](https://github.com/HiAvi-tester/playwright-ts-enterprise-framework/actions/workflows/playwright.yml/badge.svg)](https://github.com/HiAvi-tester/playwright-ts-enterprise-framework/actions/workflows/playwright.yml)
 ![Playwright](https://img.shields.io/badge/Playwright-1.65-2EAD33?logo=playwright&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/iamavinashkumarverma)
 
 A UI and API test automation framework built the way I'd set one up for a real product team: Page Object Model, custom fixtures, login once and reuse the auth state, typed API clients with JSON-schema contract checks, API-seeded UI tests with guaranteed cleanup, and a **sharded CI pipeline** that merges every job into one report.
 
@@ -183,6 +184,8 @@ HRM_BASE_URL=https://hrm.staging.example.com npx playwright test --project=hrm-c
 ## Author
 
 **Avinash Kumar Verma**: Senior Test Engineer · ISTQB certified · 9 years in QA, now focused on Playwright, Java/Selenium and API test automation.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Avinash%20Kumar%20Verma-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/iamavinashkumarverma)
 
 ---
 
