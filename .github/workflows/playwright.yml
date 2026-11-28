@@ -13,6 +13,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 # No secrets are needed: every target is a public demo and utils/env.ts holds the defaults.
 # Each test job starts with a preflight (.github/scripts/check-site.sh) so an outage of a
 # public site fails that job alone, with an explicit "site unavailable" error.
@@ -193,3 +198,24 @@ jobs:
           name: playwright-html-report
           path: playwright-report
           retention-days: 14
+
+  # ── Publish the merged report to GitHub Pages (main branch only) ────────────
+  deploy-report:
+    needs: report
+    if: github.ref == 'refs/heads/main' && !cancelled()
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: playwright-html-report
+          path: playwright-report
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

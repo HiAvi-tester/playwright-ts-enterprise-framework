@@ -4,6 +4,10 @@
 ![Playwright](https://img.shields.io/badge/Playwright-1.65-2EAD33?logo=playwright&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 
+### 📊 [Live test report (Playwright HTML)](https://hiavi-tester.github.io/playwright-ts-enterprise-framework/)
+
+Published by CI on every push to `main`, merging every sharded job into one report.
+
 A UI and API test automation framework built the way I'd set one up for a real product team: Page Object Model, custom fixtures, login once and reuse the auth state, typed API clients with JSON-schema contract checks, API-seeded UI tests with guaranteed cleanup, and a **sharded CI pipeline** that merges every job into one report.
 
 It is deliberately **not tied to one site**: the same patterns drive four different public applications, each in its own Playwright project.
